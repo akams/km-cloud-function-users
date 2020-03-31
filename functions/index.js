@@ -2,6 +2,7 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const express = require('express');
 const bodyParser = require('body-parser');
+const cors = require('cors');
 
 admin.initializeApp(functions.config().firebase);
 
@@ -9,6 +10,7 @@ const db = admin.firestore(); // cloudFireStore Db
 const app = express(); // Handle intern API
 const main = express(); // Expose API
 
+main.use(cors());
 main.use('/api/v1', app);
 main.use(bodyParser.json());
 
@@ -16,29 +18,42 @@ exports.kmUsersFunctions = functions.https.onRequest(main);
 
 // Warmup server
 app.get('/warmup', (request, response) => {
-	response.send('Warming up friend {kmUsersFunctions} .');
+  response.send('Warming up serverless .');
 });
 
 // post data
-app.post('/fights', async (request, response) => {
-	try {
-		const { winner, loser, title } = request.body;
-		const data = {
-			winner,
-			loser,
-			title
-		};
-		const fightRef = await db.collection('fights').add(data);
-		const fight = await fightRef.get();
-		response.json({
-			msg: "okay 2",
-			id: fightRef.id,
-			data: fight.data()
-		});
-	}
-	catch (error) {
-		response.status(500).send({err: error.message});
-	}
+app.post('/signup', async (request, response) => {
+  try {
+    console.log('request.-->', request.body)
+    const {
+      uid, lastName, firstName, birthDate,
+      address, city, cp, country,
+      username, email, typeAccount } = request.body;
+
+    const data = {
+      uid, lastName, firstName, birthDate,
+      address, city, cp, country,
+      username, email
+    };
+    let artist = {}
+    if (typeAccount === 'art') {
+      artist = {
+        nickname: '',
+        nbTrack: 0,
+        nbAlbum: 0,
+        tracks: [],
+        albums: []
+      };
+      data.artist = artist;
+    }
+
+    const UserRef = await db.collection('users').add(data);
+    const user = await UserRef.get();
+    response.json({ id: user.id, data: user.data() });
+  }
+  catch (error) {
+    response.status(500).send({ err: error.message });
+  }
 });
 
 // get all data
@@ -47,15 +62,15 @@ app.get('/fights', async (request, response) => {
     const fightQuerySnapshot = await db.collection('fights').get();
     const fights = [];
     fightQuerySnapshot.forEach((doc) => {
-			fights.push({
-				id: doc.id,
-				data: doc.data()
-			});
-		});
+      fights.push({
+        id: doc.id,
+        data: doc.data()
+      });
+    });
     response.json(fights);
-	}
-	catch(error) {
-    response.status(500).send({err: error.message});
+  }
+  catch (error) {
+    response.status(500).send({ err: error.message });
   }
 });
 
@@ -64,42 +79,42 @@ app.get('/fights/:id', async (request, response) => {
   try {
     const fightId = request.params.id;
     if (!fightId) {
-			throw new Error('Fight ID is required');
-		}
+      throw new Error('Fight ID is required');
+    }
     const fight = await db.collection('fights').doc(fightId).get();
-    if (!fight.exists){
-			throw new Error('Fight doesnt exist.')
+    if (!fight.exists) {
+      throw new Error('Fight doesnt exist.')
     }
     response.json({
-			id: fight.id,
+      id: fight.id,
       data: fight.data()
     });
-  } catch(error) {
-    response.status(500).send({err: error.message});
+  } catch (error) {
+    response.status(500).send({ err: error.message });
   }
 });
 
 app.put('/fights/:id', async (request, response) => {
   try {
     const fightId = request.params.id;
-		const title = request.body.title;
+    const title = request.body.title;
 
     if (!fightId) throw new Error('id is blank');
     if (!title) throw new Error('Title is required');
 
-    const data = { 
-			title
+    const data = {
+      title
     };
     const fightRef = await db.collection('fights')
-        .doc(fightId)
-        .set(data, { merge: true });
+      .doc(fightId)
+      .set(data, { merge: true });
 
     response.json({
-			id: fightId,
-			data
+      id: fightId,
+      data
     });
-  } catch(error){
-    response.status(500).send({err: error.message});
+  } catch (error) {
+    response.status(500).send({ err: error.message });
   }
 });
 
@@ -110,14 +125,14 @@ app.delete('/fights/:id', async (request, response) => {
     if (!fightId) throw new Error('id is blank');
 
     await db.collection('fights')
-        .doc(fightId)
-        .delete();
+      .doc(fightId)
+      .delete();
 
     response.json({
-			id: fightId,
+      id: fightId,
     })
-  } catch(error){
-    response.status(500).send({err: error.message});
+  } catch (error) {
+    response.status(500).send({ err: error.message });
   }
 });
 
