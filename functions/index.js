@@ -35,16 +35,16 @@ app.post('/signup', async (request, response) => {
       address, city, cp, country,
       username, email
     };
-    let artist = {}
+
     if (typeAccount === 'art') {
-      artist = {
+      await db.collection('artists').add({
+        uid,
         nickname: '',
         nbTrack: 0,
         nbAlbum: 0,
         tracks: [],
         albums: []
-      };
-      data.artist = artist;
+      });
     }
 
     const UserRef = await db.collection('users').add(data);
