@@ -56,6 +56,35 @@ app.post('/signup', async (request, response) => {
   }
 });
 
+// get user by local uid
+app.get('/userLocalId/:uid', async (request, response) => {
+  try {
+    const userUid = request.params.uid;
+    if (!userUid) {
+      throw new Error('User uid is required');
+    }
+    await db.collection('users').where('uid', '==', userUid)
+      .get()
+      .then(function(querySnapshot) {
+        let user = { id: null };
+        querySnapshot.forEach(function(doc) {
+          user.id = doc.id;
+          user.data = doc.data();
+        });
+        console.log({user})
+        if (!user.id) {
+          throw new Error('User doesnt exist.')
+        }
+        response.json({ 
+          id: user.id,
+          data: user.data
+        });
+      })
+  } catch (error) {
+    response.status(500).send({ err: error.message });
+  }
+});
+
 // get all data
 app.get('/fights', async (request, response) => {
   try {
